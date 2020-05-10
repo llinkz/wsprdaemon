@@ -1,5 +1,8 @@
-# wsprdaemon (WD) Latest version is v2.7b
-(fixed intallation problem on virgin Raspberry Pis)
+# wsprdaemon (WD) Latest version is v2.9
+(Many enhancements and optimizations to spot and noise data uploads to wsprdaemon.org)
+
+'git pull' will update your local copy of WD.  V2.9 is backwards compatible with V2.8 and requires no new SW installations.
+Search for '2.9' in WD.sh to see the list of changes
 
 A Debian/Raspberry Pi [WSPR](https://en.wikipedia.org/wiki/WSPR_(amateur_radio_software)) decoding and noise level graphing service
 
