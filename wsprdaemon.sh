@@ -1,5 +1,7 @@
 #!/bin/bash
 
+### Archlinux version by F4GFZ
+
 ###  Wsprdaemon:   A robust  decoding and reporting system for  WSPR 
 
 ###    Copyright (C) 2020  Robert S. Robinett
@@ -214,7 +216,7 @@ function check_tmp_filesystem()
 check_tmp_filesystem
 
 ################## Check that kiwirecorder is installed and running #######################
-declare -r DPKG_CMD="/usr/bin/dpkg"
+declare -r DPKG_CMD="/usr/bin/pacman"
 declare -r GREP_CMD="/bin/grep"
 
 declare   KIWI_RECORD_DIR="${WSPRDAEMON_ROOT_DIR}/kiwiclient" 
@@ -223,7 +225,7 @@ declare   KIWI_RECORD_TMP_LOG_FILE="./kiwiclient.log"
 
 function check_for_kiwirecorder_cmd() {
     local get_kiwirecorder="no"
-    local apt_update_done="no"
+    local pacman_update_done="no"
     if [[ ! -x ${KIWI_RECORD_COMMAND} ]]; then
         [[ ${verbosity} -ge 1 ]] && echo "$(date): check_for_kiwirecorder_cmd() found no ${KIWI_RECORD_COMMAND}"
         get_kiwirecorder="yes"
@@ -238,10 +240,10 @@ function check_for_kiwirecorder_cmd() {
                 echo "Found unknown error in ${log_file} when running 'python3 ${KIWI_RECORD_COMMAND}'"
                 exit 1
             fi
-            if sudo apt install python3-numpy ; then
+            if yes|sudo pacman -S --needed python-numpy python2-numpy; then
                 echo "Successfully installed numpy"
             else
-                echo "'sudo apt install python3-numpy' failed to install numpy"
+                echo "'sudo pacman -S python-numpy python2-numpy' failed to install numpy"
                 if ! pip3 install numpy; then 
                     echo "Installation command 'pip3 install numpy' failed"
                     exit 1
@@ -266,20 +268,20 @@ function check_for_kiwirecorder_cmd() {
     if [[ ${get_kiwirecorder} == "yes" ]]; then
         cd ${WSPRDAEMON_ROOT_DIR}
         echo "Installing kiwirecorder in $PWD"
-        if ! ${DPKG_CMD} -l | ${GREP_CMD} -wq git  ; then
-            [[ ${apt_update_done} == "no" ]] && sudo apt-get --yes update && apt_update_done="yes"
-            sudo apt-get --yes install git
+        if ! ${DPKG_CMD} -Qqe | ${GREP_CMD} -wq git  ; then
+            [[ ${pacman_update_done} == "no" ]] && sudo pacman -Sy && pacman_update_done="yes"
+            yes|sudo pacman -S --needed git
         fi
         git clone git://github.com/jks-prv/kiwiclient
         echo "Downloading the kiwirecorder SW from Github..." 
         if [[ ! -x ${KIWI_RECORD_COMMAND} ]]; then 
             echo "ERROR: can't find the kiwirecorder.py command needed to communicate with a KiwiSDR.  Download it from https://github.com/jks-prv/kiwiclient/tree/jks-v0.1"
-            echo "       You may also need to install the Python library 'numpy' with:  sudo apt-get install python-numpy"
+            echo "       You may also need to install the Python library 'numpy' with:  sudo pacman -S python-numpy"
             exit 1
         fi
-        if ! ${DPKG_CMD} -l | ${GREP_CMD} -wq python-numpy ; then
-            [[ ${apt_update_done} == "no" ]] && sudo apt-get --yes update && apt_update_done="yes"
-            sudo apt --yes install python-numpy
+        if ! ${DPKG_CMD} -Qqe | ${GREP_CMD} -wq python-numpy ; then
+            [[ ${pacman_update_done} == "no" ]] && sudo pacman -Sy && pacman_update_done="yes"
+            yes|sudo pacman -S --needed python-numpy python2-numpy
         fi
         echo "Successfully installed kwirecorder.py"
         cd - >& /dev/null
@@ -813,7 +815,7 @@ WSPR_BAND_CENTERS_IN_MHZ+=( ${EXTRA_BAND_CENTERS_IN_MHZ[@]- } )
 ### Only after the config file has been sourced, then check for utilities needed 
 
 ################################### Noise level logging 
-declare -r SIGNAL_LEVELS_WWW_DIR=/var/www/html
+declare -r SIGNAL_LEVELS_WWW_DIR=/srv/http
 declare -r SIGNAL_LEVELS_WWW_INDEX_FILE=${SIGNAL_LEVELS_WWW_DIR}/index.html
 declare -r NOISE_GRAPH_FILENAME=noise_graph.png
 declare -r SIGNAL_LEVELS_NOISE_GRAPH_FILE=${WSPRDAEMON_TMP_DIR}/${NOISE_GRAPH_FILENAME}          ## If configured, this is the png graph copied to the graphs.wsprdaemon.org site and displayed by the local Apache server
@@ -855,13 +857,13 @@ declare JT9_DECODE_EANABLED=${JT9_DECODE_EANABLED:-no}
 function check_for_needed_utilities()
 {
     ### TODO: Check for kiwirecorder only if there are kiwis receivers spec
-    local apt_update_done="no"
-    local dpkg_list=$(${DPKG_CMD} -l)
+    local pacman_update_done="no"
+    local dpkg_list=$(${DPKG_CMD} -Qqe)
 
     if ! [[ ${dpkg_list} =~ " at " ]] ; then
         ### Used by the optional wsprd_vpn service
-        [[ ${apt_update_done} == "no" ]] && sudo apt-get --yes update && apt_update_done="yes"
-        sudo apt-get install at --assume-yes
+        [[ ${pacman_update_done} == "no" ]] && sudo pacman -Sy && pacman_update_done="yes"
+        yes|sudo pacman -S --needed at
         local ret_code=$?
         if [[ $ret_code -ne 0 ]]; then
             echo "FATAL ERROR: Failed to install 'at' which is needed iby the wspd_vpn service"
@@ -869,8 +871,8 @@ function check_for_needed_utilities()
         fi
     fi
     if !  [[ ${dpkg_list} =~ " bc " ]] ; then
-        [[ ${apt_update_done} == "no" ]] && sudo apt-get --yes update && apt_update_done="yes"
-        sudo apt-get install bc --assume-yes
+        [[ ${pacman_update_done} == "no" ]] && sudo pacman -Sy && pacman_update_done="yes"
+        yes|sudo pacman -S --needed bc
         local ret_code=$?
         if [[ $ret_code -ne 0 ]]; then
             echo "FATAL ERROR: Failed to install 'bc' which is needed for floating point frequency calculations"
@@ -878,8 +880,8 @@ function check_for_needed_utilities()
         fi
     fi
     if ! [[ ${dpkg_list} =~ " curl " ]] ; then
-        [[ ${apt_update_done} == "no" ]] && sudo apt-get --yes update && apt_update_done="yes"
-        sudo apt-get install curl --assume-yes
+        [[ ${pacman_update_done} == "no" ]] && sudo pacman -Sy && pacman_update_done="yes"
+        yes|sudo pacman -S --needed curl
         local ret_code=$?
         if [[ $ret_code -ne 0 ]]; then
             echo "FATAL ERROR: Failed to install 'curl' which is needed for uploading to wsprnet.org and wsprdaemon.org"
@@ -887,8 +889,8 @@ function check_for_needed_utilities()
         fi
     fi
     if ! [[ ${dpkg_list} =~ " ntp " ]] ; then
-        [[ ${apt_update_done} == "no" ]] && sudo apt-get --yes update && apt_update_done="yes"
-        sudo apt-get install ntp --assume-yes
+        [[ ${pacman_update_done} == "no" ]] && sudo pacman -Sy && pacman_update_done="yes"
+        yes|sudo pacman -S --needed ntp
         local ret_code=$?
         if [[ $ret_code -ne 0 ]]; then
             echo "FATAL ERROR: Failed to install 'ntp' which is needed to ensure synchronization with the 2 minute WSPR cycle"
@@ -896,8 +898,8 @@ function check_for_needed_utilities()
         fi
     fi
     if !  [[ ${dpkg_list} =~ " postgresql  " ]] ; then
-        [[ ${apt_update_done} == "no" ]] && sudo apt-get update && apt_update_done="yes"
-        sudo apt-get install postgresql libpq-dev postgresql-client postgresql-client-common --assume-yes
+        [[ ${pacman_update_done} == "no" ]] && sudo pacman -Sy && pacman_update_done="yes"
+        yes|sudo pacman -S --needed postgresql postgresql-libs
         local ret_code=$?
         if [[ $ret_code -ne 0 ]]; then
             echo "FATAL ERROR: Failed to install 'postgresql' which is needed for logging spots and noise to wsprdaemon.org"
@@ -905,11 +907,20 @@ function check_for_needed_utilities()
         fi
     fi
     if !  [[ ${dpkg_list} =~ " sox  " ]] ; then
-        [[ ${apt_update_done} == "no" ]] && sudo apt-get update && apt_update_done="yes"
-        sudo apt-get install sox --assume-yes
+        [[ ${pacman_update_done} == "no" ]] && sudo pacman -Sy && pacman_update_done="yes"
+        yes|sudo pacman -S --needed sox
         local ret_code=$?
         if [[ $ret_code -ne 0 ]]; then
             echo "FATAL ERROR: Failed to install 'sox' which is needed for RMS noise level calculations"
+            exit 1
+        fi
+    fi
+    if !  [[ ${dpkg_list} =~ " python2  " ]] ; then
+        [[ ${pacman_update_done} == "no" ]] && sudo pacman -Sy && pacman_update_done="yes"
+        yes|sudo pacman -S --needed python2
+        local ret_code=$?
+        if [[ $ret_code -ne 0 ]]; then
+            echo "FATAL ERROR: Failed to install 'python2' which is needed for some scripts"
             exit 1
         fi
     fi
@@ -920,25 +931,52 @@ function check_for_needed_utilities()
     ### So on Ubuntu 20.04 we assume that if wsprd is installed it is the correct version
     ### Perhaps I will save the version number of wsprd and use this process on all OSs
     
-    if !  [[ ${dpkg_list} =~ " libgfortran5:" ]] ; then
-        [[ ${apt_update_done} == "no" ]] && sudo apt-get update && apt_update_done="yes"
-        sudo apt-get install libgfortran5 --assume-yes
+    if !  [[ ${dpkg_list} =~ " gcc-fortran" ]] ; then
+        [[ ${pacman_update_done} == "no" ]] && sudo pacman -Sy && pacman_update_done="yes"
+        yes|sudo pacman -S --needed gcc-fortran
         local ret_code=$?
         if [[ $ret_code -ne 0 ]]; then
             echo "FATAL ERROR: Failed to install 'libgfortran5' which is needed to run wsprd V2.3.xxxx"
             exit 1
         fi
     fi
-    if !  [[ ${dpkg_list} =~ " qt5-default:" ]] ; then
-        [[ ${apt_update_done} == "no" ]] && sudo apt-get update && apt_update_done="yes"
-        sudo apt-get install qt5-default --assume-yes
+    if !  [[ ${dpkg_list} =~ " qt5-base " ]] ; then
+        [[ ${pacman_update_done} == "no" ]] && sudo pacman -Sy && pacman_update_done="yes"
+        yes|sudo pacman -S --needed qt5-base
         local ret_code=$?
         if [[ $ret_code -ne 0 ]]; then
             echo "FATAL ERROR: Failed to install 'qt5-default' which is needed to run the 'jt9' copmmand in wsprd V2.3.xxxx"
             exit 1
         fi
     fi
+    if !  [[ ${dpkg_list} =~ " dpkg " ]] ; then
+        [[ ${pacman_update_done} == "no" ]] && sudo pacman -Sy && pacman_update_done="yes"
+        yes|sudo pacman -S --needed dpkg
+        local ret_code=$?
+        if [[ $ret_code -ne 0 ]]; then
+            echo "FATAL ERROR: Failed to install 'dpkg' which is needed to install 'wstj-x'"
+            exit 1
+        fi
+    fi
 
+    if !  [[ ${dpkg_list} =~ " dnsutils " ]] ; then
+        [[ ${pacman_update_done} == "no" ]] && sudo pacman -Sy && pacman_update_done="yes"
+        yes|sudo pacman -S --needed dnsutils
+        local ret_code=$?
+        if [[ $ret_code -ne 0 ]]; then
+            echo "FATAL ERROR: Failed to install 'dnsutils' which is needed to run 'host' command on fresh archlinux install"
+            exit 1
+        fi
+    fi
+    if !  [[ ${dpkg_list} =~ " fftw " ]] ; then
+        [[ ${pacman_update_done} == "no" ]] && sudo pacman -Sy && pacman_update_done="yes"
+        yes|sudo pacman -S --needed fftw
+        local ret_code=$?
+        if [[ $ret_code -ne 0 ]]; then
+            echo "FATAL ERROR: Failed to install 'fftw'"
+            exit 1
+        fi
+    fi
     ### If wsprd is installed, try to get its version number
     declare WSPRD_VERSION_CMD=${WSPRD_CMD}.version       ### Since WSJT-x wsprd doesn't have a '-V' to identify its version, save the version here
     local wsprd_version=""
@@ -984,7 +1022,7 @@ function check_for_needed_utilities()
         fi
         local dpkg_tmp_dir=${WSPRDAEMON_TMP_DIR}/dpkg_wsjt
         mkdir -p ${dpkg_tmp_dir}
-        dpkg-deb -x ${wsjtx_dpkg_file} ${dpkg_tmp_dir}
+        dpkg -x ${wsjtx_dpkg_file} ${dpkg_tmp_dir}
         ret_code=$?
         if [[ ${ret_code} -ne 0 ]] ; then
             echo "ERROR: on ${os_name} failed to extract files from package file ${wsjtx_pkg_file}"
@@ -1005,15 +1043,15 @@ function check_for_needed_utilities()
             echo "ERROR: failed to find executable '${dpkg_jt9_file}' in the dowloaded WSJT-x package"
             exit 1
         fi
-        sudo apt install libboost-log1.67.0       ### Needed by jt9
+        yes|sudo pacman -S --needed boost-libs       ### Needed by jt9
         cp -p ${dpkg_jt9_file} ${JT9_CMD} 
         echo "Installed  ${JT9_CMD} version ${WSJTX_REQUIRED_VERSION}"
     fi
 
     if ! python3 -c "import psycopg2" 2> /dev/null ; then
         if !  sudo pip3 install psycopg2 ; then
-            [[ ${apt_update_done} == "no" ]] && sudo apt-get update && apt_update_done="yes"
-            sudo apt-get install python3-pip --assume-yes
+            [[ ${pacman_update_done} == "no" ]] && sudo pacman -Sy && pacman_update_done="yes"
+            yes|sudo pacman -S --needed python-pip
             local ret_code=$?
             if [[ $ret_code -ne 0 ]]; then
                 echo "FATAL ERROR: Failed to install 'pip3' which is needed for logging spots and noise to wsprdaemon.org"
@@ -1035,22 +1073,22 @@ function check_for_needed_utilities()
     fi
     if [[ ${SIGNAL_LEVEL_LOCAL_GRAPHS-no} == "yes" ]] || [[ ${SIGNAL_LEVEL_UPLOAD_GRAPHS-no} == "yes" ]] ; then
         ### Get the Python packages needed to create the graphs.png
-        if !  [[ ${dpkg_list} =~ " python3-matplotlib " ]] ; then
+        if !  [[ ${dpkg_list} =~ " python-matplotlib " ]] ; then
             # ask_user_to_install_sw "SIGNAL_LEVEL_LOCAL_GRAPHS=yes and/or SIGNAL_LEVEL_UPLOAD_GRAPHS=yes require that some Python libraries be added to this server"
-            [[ ${apt_update_done} == "no" ]] && sudo apt-get update && apt_update_done="yes"
-            sudo apt-get install python3-matplotlib --assume-yes
+            [[ ${pacman_update_done} == "no" ]] && sudo pacman -Sy && pacman_update_done="yes"
+            yes|sudo pacman -S --needed python-matplotlib
         fi
-        if !  [[ ${dpkg_list} =~ " python3-scipy " ]] ; then
+        if !  [[ ${dpkg_list} =~ " python-scipy " ]] ; then
             # ask_user_to_install_sw "SIGNAL_LEVEL_LOCAL_GRAPHS=yes and/or SIGNAL_LEVEL_UPLOAD_GRAPHS=yes require that some more Python libraries be added to this server"
-            [[ ${apt_update_done} == "no" ]] && sudo apt-get update && apt_update_done="yes"
-            sudo apt-get install python3-scipy --assume-yes
+            [[ ${pacman_update_done} == "no" ]] && sudo pacman -Sy && pacman_update_done="yes"
+            yes|sudo pacman -S --needed python-scipy
         fi
         if [[ ${SIGNAL_LEVEL_LOCAL_GRAPHS-no} == "yes" ]] ; then
-            ## Ensure that Apache is installed and running
-            if !  [[ ${dpkg_list} =~ " apache2 " ]]; then
+            ## Ensure that lighttpd is installed and running
+            if !  [[ ${dpkg_list} =~ " lighttpd " ]]; then
                 # ask_user_to_install_sw "SIGNAL_LEVEL_LOCAL_GRAPHS=yes requires that the Apache web service be added to this server"
-                [[ ${apt_update_done} == "no" ]] && sudo apt-get update && apt_update_done="yes"
-                sudo apt-get install apache2 -y --fix-missing
+                [[ ${pacman_update_done} == "no" ]] && sudo pacman -Sy && pacman_update_done="yes"
+                yes|sudo pacman -S --needed lighttpd
             fi
             local index_tmp_file=${WSPRDAEMON_TMP_DIR}/index.html
             cat > ${index_tmp_file} <<EOF
@@ -1073,14 +1111,12 @@ EOF
         fi
     fi ## [[ ${SIGNAL_LEVEL_LOCAL_GRAPHS} == "yes" ]] || [[ ${SIGNAL_LEVEL_UPLOAD_GRAPHS} == "yes" ]] ; then
     if ! python3 -c "import astral" 2> /dev/null ; then
-        if ! sudo apt-get install python3-astral -y ; then
-            if !  pip3 install astral ; then
-                if ! sudo apt-get install python-pip3 -y ; then
-                    echo "$(date) check_for_needed_utilities() ERROR: sudo can't install 'pip3' needed to install the Python 'astral' library"
-                else
-                    if !  pip3 install astral ; then
-                        echo "$(date) check_for_needed_utilities() ERROR: pip can't install the Python 'astral' library used to calculate sunup/sunset times"
-                    fi
+        if !  pip3 install astral==1.10.1 ; then
+            if ! yes|sudo pacman -S --needed python-pip ; then
+                echo "$(date) check_for_needed_utilities() ERROR: sudo can't install 'pip3' needed to install the Python 'astral' library"
+            else
+                if !  pip3 install astral==1.10.1 ; then
+                    echo "$(date) check_for_needed_utilities() ERROR: pip can't install the Python 'astral' library used to calculate sunup/sunset times"
                 fi
             fi
         fi
