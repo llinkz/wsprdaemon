@@ -1,4 +1,6 @@
-# wsprdaemon (WD) Latest version is v2.10i
+# wsprdaemon (WD) (for Archlinux)
+
+2.10j Load WSJT-x V2.3.0 wsprd and jt9 commands and the libraries they need
 
 2.10i Fix installation of python-numpy on Ubuntu 20.04.1 LTE 
 
